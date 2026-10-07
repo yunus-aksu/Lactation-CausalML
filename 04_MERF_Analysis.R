@@ -65,7 +65,7 @@ saveRDS(merf_predictions, "outputs/MERF_Predictions.rds")
 cat("MERF analysis completed with full metrics.\n")
 
 # ==============================================================================
-# SCRIPT 4 EKLEME: MERF 5-FOLD ANIMAL-LEVEL CLUSTER CV
+# MERF 5-FOLD ANIMAL-LEVEL CLUSTER CV
 # ==============================================================================
 library(ranger)
 library(lme4)
@@ -73,7 +73,6 @@ library(dplyr)
 
 set.seed(42)
 
-# 1. Hayvan düzeyinde kümeleme
 unique_animals <- unique(df$animal_id)
 folds <- sample(rep(1:5, length.out = length(unique_animals)))
 animal_fold_map <- data.frame(animal_id = unique_animals, fold = folds)
@@ -84,12 +83,11 @@ if (!"fold" %in% colnames(df)) {
 
 df$pred_merf_cv <- NA
 
-# 2. 5-Fold CV Döngüsü
+# 5-Fold CV
 for (k in 1:5) {
   train_df <- df %>% filter(fold != k)
   test_df  <- df %>% filter(fold == k)
   
-  # Train seti için EM döngüsü
   b_i_tr <- rep(0, length(unique(train_df$animal_id)))
   names(b_i_tr) <- unique(train_df$animal_id)
   max_iter <- 10; tolerance <- 1e-4; last_mse <- Inf
@@ -111,19 +109,17 @@ for (k in 1:5) {
     last_mse <- current_mse
   }
   
-  # Test kümesi için tahmin alma (Yeni hayvanlar için b_i = 0 kalır)
   rf_test_pred <- predict(rf_fold, data = test_df)$predictions
   df$pred_merf_cv[df$fold == k] <- rf_test_pred
 }
 
-# 3. Out-of-Sample CV Metriklerinin Hesaplanması
+# Out-of-Sample CV Metrics
 merf_cv_rmse  <- sqrt(mean((df[[target]] - df$pred_merf_cv)^2))
 merf_cv_mae   <- mean(abs(df[[target]] - df$pred_merf_cv))
 merf_cv_rrmse <- (merf_cv_rmse / mean(df[[target]])) * 100
 merf_cv_ccc   <- ccc(df[[target]], df$pred_merf_cv)
 merf_cv_r2    <- 1 - (sum((df[[target]] - df$pred_merf_cv)^2) / sum((df[[target]] - mean(df[[target]]))^2))
 
-# 4. Orijinal Değişken İsimlerinizle outputs/MERF_Metrics.csv Güncelleme
 results_merf_all <- data.frame(
   Model = c("MERF (In-Sample)", "MERF (5-Fold CV)"),
   RMSE = c(merf_rmse, merf_cv_rmse),
@@ -134,4 +130,4 @@ results_merf_all <- data.frame(
 )
 
 write.csv(results_merf_all, "outputs/MERF_Metrics.csv", row.names = FALSE)
-cat(">>> Script 4: MERF 5-Fold Cluster CV tamamlandı ve outputs/MERF_Metrics.csv güncellendi.\n")
+cat(">>> Script 4: The MERF 5-Fold Cluster CV has been completed, and outputs/MERF_Metrics.csv has been updated.\n")
