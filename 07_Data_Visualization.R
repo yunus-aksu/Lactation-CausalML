@@ -1,5 +1,5 @@
 ### ==============================================================================
-### Script 7: Generate Publication-Quality Figures (UPDATED V8)
+### Script 7: Generate Publication-Quality Figures
 ### Description: Creates high-resolution (300 DPI) figures for the manuscript,
 ### including prediction correlation heatmap, scatter plots, feature importance, and
 ### CATE distributions (Causal Forest) with professional academic labels & units.
@@ -12,13 +12,13 @@ library(ggcorrplot)
 cat("Starting Professional Figure Generation...\n")
 
 ### ------------------------------------------------------------------------------
-### 0. SÖZLÜK TANIMLAMALARI (Professional Academic Dictionary)
+### 0. Academic Dictionary
 ### ------------------------------------------------------------------------------
-# Bu sözlük ham R isimlerini grafiklerde görünecek temiz ve birimli hallerine dönüştürür.
+
 clean_feature_labels <- c(
   "milk_yield_y"         = "Daily Milk Yield\n(kg/day)",
   "dmi_kg"               = "Dry Matter Intake\n(kg/day)",
-  "scc_100k_d"           = "Somatic Cell Count\n(x10\u2075 cells/mL)", # Bölündü
+  "scc_100k_d"           = "Somatic Cell Count\n(x10\u2075 cells/mL)", 
   "glucose_mmol_l"       = "Glucose\n(mmol/L)",
   "total_protein_g_d_l"  = "Total Protein\n(g/dL)",
   "uric_acid_mg_d_l"     = "Uric Acid\n(mg/dL)",
@@ -27,10 +27,10 @@ clean_feature_labels <- c(
   "hdl_mg_d_l"           = "HDL Cholesterol\n(mg/dL)",
   "ast_u_i"              = "AST (U/L)",
   "alt_u_i"              = "ALT (U/L)",
-  "cortisol_mg_d_l"      = "Cortisol\n(\u00b5g/dL)",                    # Bölündü
-  "rectal_temp_f"        = "Rectal Temp\n(\u00b0F)",                    # Bölündü
+  "cortisol_mg_d_l"      = "Cortisol\n(\u00b5g/dL)",                    
+  "rectal_temp_f"        = "Rectal Temp\n(\u00b0F)",                    
   "pulse_rate_bpm"       = "Pulse Rate\n(bpm)",
-  "respiration_rate_bpm" = "Respiration Rate\n(breaths/min)",           # Bölündü
+  "respiration_rate_bpm" = "Respiration Rate\n(breaths/min)",           
   "thi_range"            = "THI Range",
   "genetic_group"        = "Genetic Group"
 )
@@ -44,13 +44,12 @@ theme_set(theme_classic(base_size = 14) +
 df_clean <- readRDS("data/Cleaned_Data.rds")
 
 ### ------------------------------------------------------------------------------
-### FIGURE 1: Correlation Heatmap (Ham başlıklar tamamen temizlendi!)
+### FIGURE 1: Correlation Heatmap
 ### ------------------------------------------------------------------------------
 cat("Generating Correlation Heatmap...\n")
 cor_matrix <- read.csv("outputs/Correlation_Matrix.csv", row.names = 1)
 cor_matrix <- as.matrix(cor_matrix)
 
-# Korelasyon matrisinin satır ve sütun isimlerini temiz etiketlerle maskeliyoruz
 rownames(cor_matrix) <- ifelse(rownames(cor_matrix) %in% names(clean_feature_labels), 
                                clean_feature_labels[rownames(cor_matrix)], rownames(cor_matrix))
 colnames(cor_matrix) <- ifelse(colnames(cor_matrix) %in% names(clean_feature_labels), 
@@ -99,12 +98,11 @@ ggsave("outputs/Figure2_Prediction_Accuracy.png", plot = fig2, width = 10, heigh
 cat("Figure 2 (Prediction Accuracy) saved.\n")
 
 ### ------------------------------------------------------------------------------
-### FIGURE 3: MERF Feature Importance (Önem Dereceleri Birimli ve Temizlendi!)
+### FIGURE 3: MERF Feature Importance
 ### ------------------------------------------------------------------------------
 cat("Generating MERF Feature Importance Plot...\n")
 importance_df <- read.csv("outputs/MERF_Feature_Importance.csv")
 
-# Değişken adlarını temiz akademik isimlerle değiştiriyoruz
 importance_df <- importance_df %>%
   mutate(Feature_Clean = ifelse(Feature %in% names(clean_feature_labels), 
                                 clean_feature_labels[Feature], as.character(Feature))) %>%
@@ -126,7 +124,6 @@ fig3 <- ggplot(importance_df, aes(x = Feature_Clean, y = Importance)) +
         # lineheight = 0.8 ile iki satırlı etiketlerin kendi içindeki boşluğu daralttık
         axis.text.y = element_text(face = "bold", size = 11, color = "black", lineheight = 0.8))
 
-# Yüksekliği 6'dan 8'e çıkararak 16 değişkenin arasını dikeyde açtık!
 ggsave("outputs/Figure3_Feature_Importance.png", plot = fig3, width = 10, height = 8, dpi = 300, bg = "white")
 cat("Figure 3 (Feature Importance) saved successfully with optimized spacing.\n")
 
@@ -138,7 +135,6 @@ dml_plot_data <- read.csv("outputs/DML_ATE_Results.csv")
 
 dml_plot_data <- dml_plot_data %>% 
   mutate(
-    # Uzun isimleri iki satıra bölüyoruz (\n ile)
     Treatment_Clean = case_when(
       Treatment == "Environment: Severe Heat Stress (-)" ~ "Environment:\nSevere Heat Stress (-)",
       Treatment == "Genetics: HF Crossbred (+)"        ~ "Genetics:\nHF Crossbred (+)",
@@ -152,10 +148,10 @@ dml_plot_data <- dml_plot_data %>%
       TRUE ~ "Insignificant (p > 0.05)"
     )
   ) %>%
-  # Sıralamanın doğru kalması için faktör yapıyoruz
+ 
   mutate(Treatment_Clean = factor(Treatment_Clean, levels = rev(Treatment_Clean)))
 
-# Çizimde y eksenine 'Treatment_Clean' değişkenini veriyoruz
+
 fig4 <- ggplot(dml_plot_data, aes(x = ATE_Estimate, y = Treatment_Clean, color = Significance)) + 
   geom_vline(xintercept = 0, linetype = "dashed", color = "black", linewidth = 1) + 
   geom_errorbar(aes(xmin = CI_Lower_95, xmax = CI_Upper_95), width = 0.2, linewidth = 1.2) + 
@@ -177,7 +173,7 @@ fig4 <- ggplot(dml_plot_data, aes(x = ATE_Estimate, y = Treatment_Clean, color =
   theme(
     plot.title = element_text(face = "bold", size = 16, hjust = 0.5), 
     plot.subtitle = element_text(size = 12, hjust = 0.5, color = "grey30"), 
-    axis.text.y = element_text(face = "bold", size = 11, color = "black", lineheight = 0.9), # lineheight ile satır arası daraltıldı
+    axis.text.y = element_text(face = "bold", size = 11, color = "black", lineheight = 0.9),
     axis.text.x = element_text(size = 12, color = "black"), 
     axis.title.x = element_text(face = "bold", margin = margin(t = 15)), 
     legend.position = "bottom", 
@@ -189,12 +185,11 @@ ggsave("outputs/Figure4_DML_Forest_Plot.png", plot = fig4, width = 10, height = 
 cat("Figure 4 (DML Forest Plot) saved successfully.\n")
 
 ### ------------------------------------------------------------------------------
-### FIGURE 5: Heterogeneous Treatment Effects (CATE) by Genetics (Kategoriler Şıklaştırıldı)
+### FIGURE 5: Heterogeneous Treatment Effects (CATE) by Genetics
 ### ------------------------------------------------------------------------------
 cat("Generating Causal Forest HTE Plot...\n")
 cate_df <- read.csv("outputs/CATE_Predictions.csv")
 
-# Genetik grup seviyelerini hem düzgün sıralıyor hem de şıklaştırıyoruz (% birimleri eklendi)
 cate_df$genetic_group <- factor(cate_df$genetic_group, 
                                 levels = c("Local", "HF50", "HF62.5", "HF75", "HF87.5"),
                                 labels = c("Local", "50% HF", "62.5% HF", "75% HF", "87.5% HF"))
