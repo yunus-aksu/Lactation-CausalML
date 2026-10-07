@@ -53,14 +53,13 @@ saveRDS(glmm_predictions, "outputs/GLMM_Predictions.rds")
 cat("GLMM analysis completed with full metrics.\n")
 
 # ==============================================================================
-# SCRIPT 3 EKLEME: GLMM 5-FOLD ANIMAL-LEVEL CLUSTER CV
+# GLMM 5-FOLD ANIMAL-LEVEL CLUSTER CV
 # ==============================================================================
 library(lme4)
 library(dplyr)
 
 set.seed(42)
 
-# 1. Hayvan düzeyinde kümeleme (Aynı animal_id aynı foulda kalır)
 unique_animals <- unique(df$animal_id)
 folds <- sample(rep(1:5, length.out = length(unique_animals)))
 animal_fold_map <- data.frame(animal_id = unique_animals, fold = folds)
@@ -71,7 +70,7 @@ if (!"fold" %in% colnames(df)) {
 
 df$pred_glmm_cv <- NA
 
-# 2. 5-Fold Cluster CV Döngüsü
+# 5-Fold Cluster CV
 for (k in 1:5) {
   train_df <- df %>% filter(fold != k)
   test_df  <- df %>% filter(fold == k)
@@ -86,14 +85,13 @@ for (k in 1:5) {
   df$pred_glmm_cv[df$fold == k] <- predict(glmm_fold, newdata = test_df, allow.new.levels = TRUE)
 }
 
-# 3. Out-of-Sample CV Metriklerinin Hesaplanması
+# 3. Out-of-Sample CV Metrics
 glmm_cv_rmse  <- sqrt(mean((df$milk_yield_y - df$pred_glmm_cv)^2))
 glmm_cv_mae   <- mean(abs(df$milk_yield_y - df$pred_glmm_cv))
 glmm_cv_rrmse <- (glmm_cv_rmse / mean(df$milk_yield_y)) * 100
 glmm_cv_ccc   <- ccc(df$milk_yield_y, df$pred_glmm_cv)
 glmm_cv_r2    <- 1 - (sum((df$milk_yield_y - df$pred_glmm_cv)^2) / sum((df$milk_yield_y - mean(df$milk_yield_y))^2))
 
-# 4. Orijinal Değişken İsimlerinizle outputs/GLMM_Metrics.csv Güncelleme
 results_glmm_all <- data.frame(
   Model = c("GLMM (In-Sample)", "GLMM (5-Fold CV)"),
   RMSE = c(glmm_rmse, glmm_cv_rmse),
@@ -106,4 +104,4 @@ results_glmm_all <- data.frame(
 )
 
 write.csv(results_glmm_all, "outputs/GLMM_Metrics.csv", row.names = FALSE)
-cat(">>> Script 3: GLMM 5-Fold Cluster CV tamamlandı ve outputs/GLMM_Metrics.csv güncellendi.\n")
+cat(">>> Script 3: GLMM 5-Fold Cluster CV has been completed, and outputs/GLMM_Metrics.csv has been updated.\n")
